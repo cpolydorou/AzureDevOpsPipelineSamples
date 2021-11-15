@@ -1,0 +1,38 @@
+jobs:
+- job: Job_1
+  displayName: Agent job 1
+  pool:
+    vmImage: windows-2019
+  steps:
+  - checkout: self
+  - task: AzureCLI@2
+    displayName: 'Azure CLI '
+    inputs:
+      connectedServiceNameARM: 51635a6c-82db-4a20-96be-317c72dce135
+      scriptType: pscore
+      scriptLocation: inlineScript
+      inlineScript: >-
+        $result = az deployment sub create --location westeurope --template-file main.bicep
+
+
+        Write-Output("##vso[task.setvariable variable=bicepDeploymentOutputs;]$result")
+      cwd: Bicep
+      failOnStandardError: true
+  - task: PowerShell@2
+    displayName: Covert Outputs to Pipeline Variables
+    inputs:
+      targetType: inline
+      script: >-
+        $deploymentOutput = '$(bicepDeploymentOutputs)' | ConvertFrom-Json
+
+
+        foreach($output in $deploymentOutput.properties.outputs)
+
+        {
+            $name = $output.psobject.Properties.name
+            $value = $output.$name.value
+
+            Write-Host ("Adding variable '" + $name + "' with value '" + $value + "'.")
+            Write-Host "##vso[task.setvariable variable=$($name)]$($value)"
+        }
+...
