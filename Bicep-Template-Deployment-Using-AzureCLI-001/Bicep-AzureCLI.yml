@@ -25,12 +25,10 @@ jobs:
       script: >-
         $deploymentOutput = '$(bicepDeploymentOutputs)' | ConvertFrom-Json
 
-
-        foreach($output in $deploymentOutput.properties.outputs)
-
+        foreach($output in ($deploymentOutput.properties.outputs | %{ $_.psobject.properties.name }))
         {
-            $name = $output.psobject.Properties.name
-            $value = $output.$name.value
+            $name = $output
+            $value = $deploymentOutput.properties.outputs.$name.value
 
             Write-Host ("Adding variable '" + $name + "' with value '" + $value + "'.")
             Write-Host "##vso[task.setvariable variable=$($name)]$($value)"
